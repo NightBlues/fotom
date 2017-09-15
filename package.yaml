@@ -1,0 +1,16 @@
+name: fotom
+version: '0.1.0.0'
+category: Graphics
+author: Vadim Radovel
+maintainer: vadim@radovel.ru
+license: MIT
+dependencies:
+- base
+- hsexif
+- sqlite-simple
+- cryptohash
+- containers
+executables:
+  fotom:
+    main: Main.hs
+    source-dirs: src

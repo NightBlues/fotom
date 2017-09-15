@@ -10,6 +10,8 @@ dependencies:
 - sqlite-simple
 - cryptohash
 - containers
+- bytestring
+- utf8-string
 executables:
   fotom:
     main: Main.hs

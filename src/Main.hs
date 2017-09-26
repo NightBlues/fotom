@@ -35,8 +35,11 @@ parseCli =
 init_cmd = init_
 
 add_cmd filename =  do
-  Just photo <- make_photo filename
-  insert photo
-  print photo
+  photo <- make_photo filename
+  case photo of
+    Left err -> putStrLn $ "Error: " ++ err
+    Right photo -> do
+      insert photo
+      print photo
 
 list_cmd = show_all

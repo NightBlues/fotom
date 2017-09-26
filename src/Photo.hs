@@ -38,16 +38,17 @@ flt_func Nothing = False
 make_photo filename = do
   exif <- parseFileExif filename
   hash <- fmap SHA256.hash $ (BS.readFile filename)
-  0 <- check_hash hash
-  case exif of
-    Left err -> return Nothing
-    Right tags ->
+  hash_unique <- check_hash hash
+  case (hash_unique, exif) of
+    (True, Right tags) ->
       let ExifText date =
             findWithDefault
             (findWithDefault (ExifText "unknown") dateTimeOriginal tags)
             dateTime tags in
-        return $ Just $ Photo {id_=Nothing, name=filename, date=date,
-                               hash=hash}
+        return $ Right $ Photo {id_=Nothing, name=filename, date=date,
+                                hash=hash}
+    (True, Left err) -> return $ Left err
+    (False, _) -> return $ Left "Photo with such hash already exists."
 
 show_all = do
   conn <- open dbpath
@@ -62,13 +63,13 @@ insert p = do
   close conn
   return rowId
 
-check_hash :: BS.ByteString -> IO Integer
+check_hash :: BS.ByteString -> IO Bool
 check_hash hash = do
   conn <- open dbpath
   [[res]] <- queryNamed conn "SELECT COUNT(*) FROM photo WHERE hash=:hash"
            [":hash" := hash]
   close conn
-  return res
+  return (res == (0 :: Integer))
 
 init_ = do
   conn <- open dbpath

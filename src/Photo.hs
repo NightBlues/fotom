@@ -69,3 +69,8 @@ check_hash hash = do
            [":hash" := hash]
   close conn
   return res
+
+init_ = do
+  conn <- open dbpath
+  execute_ conn "CREATE TABLE IF NOT EXISTS photo (id INTEGER PRIMARY KEY, name TEXT, date TEXT, hash TEXT)"
+  close conn

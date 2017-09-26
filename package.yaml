@@ -12,6 +12,7 @@ dependencies:
 - containers
 - bytestring
 - utf8-string
+- optparse-applicative
 executables:
   fotom:
     main: Main.hs

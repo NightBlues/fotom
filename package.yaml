@@ -13,6 +13,8 @@ dependencies:
 - bytestring
 - utf8-string
 - optparse-applicative
+- directory
+- aeson
 executables:
   fotom:
     main: Main.hs

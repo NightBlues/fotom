@@ -3,6 +3,9 @@ import Photo (make_photo, show_all, insert, init_)
 import Options.Applicative
 import Data.Semigroup ((<>))
 import Control.Monad (join)
+import System.Directory
+import Text.Printf
+import qualified Config
 
 
 main :: IO ()
@@ -32,7 +35,18 @@ parseCli =
       command "list" list_parser
     )
 
-init_cmd = init_
+
+init_cmd = do
+  cd <- getCurrentDirectory
+  conf_ <- Config.load
+  let conf =
+        case conf_ of
+          Nothing -> Config.Config {Config.store_path = ""}
+          Just c -> c
+  putStrLn (printf "Set directory '%s' as store path (previous was '%s')."
+            cd (Config.store_path conf))
+  Config.save (Config.Config cd)
+  init_
 
 add_cmd filename =  do
   photo <- make_photo filename

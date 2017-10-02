@@ -56,32 +56,40 @@ init_cmd = do
   Db.init_ conn
   Db.close_conn conn
 
-add_cmd filename =  do
+with_db func = do
   conf_ <- Config.load
-  conn <- Db.open_conn conf_
-  photo <- Action.make_photo conn filename
-  case photo of
-    Left err -> putStrLn $ "Error: " ++ err
-    Right photo -> do
-      Db.insert conf_ photo
-      print photo
-  Db.close_conn conn
+  case conf_ of
+    Nothing -> putStrLn "Error: Could not load config"
+    Just conf -> do
+      conn <- Db.open_conn conf
+      func conf conn
+      Db.close_conn conn
 
-list_cmd = do
-  conf_ <- Config.load
-  conn <- Db.open_conn conf_
-  Db.map_photos conn print >> return ()
-  Db.close_conn conn
+add_cmd filename = with_db action
+  where
+    action _ conn = do
+      photo <- Action.make_photo conn filename
+      case photo of
+        Left err -> putStrLn $ "Error: " ++ err
+        Right photo -> do
+          Db.insert conn photo
+          print photo
+
+list_cmd = with_db action
+  where
+    action _ conn = do
+      Db.map_photos conn print >> return ()
   
-move_cmd = do
-  conf_ <- Config.load
-  conn <- Db.open_conn conf_
-  let move_func photo = do
-        let src = Photo.name photo
-            dst = Action.calculate_path photo
-        putStrLn (printf "%s -> %s" src dst)
-        -- do moves
-        Db.save conn (photo {Photo.name=dst})
-  Db.map_photos conn move_func
-  Db.close_conn conn
-  return ()
+move_cmd = with_db action
+  where
+    action conf conn = do
+      let move_func photo = do
+            let src = Photo.name photo
+                dst = Action.calculate_path photo
+            putStrLn (printf "%s -> %s" src dst)
+            res <- Action.move_photo conf src dst
+            case res of
+              True -> Db.save conn (photo {Photo.name=dst})
+              False -> return ()
+      Db.map_photos conn move_func
+      return ()

@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Action where
 import Control.Monad
+import Data.List
 import Data.Time.Calendar
 import Data.Time.Clock
 import Data.Time.LocalTime
@@ -14,10 +15,11 @@ import Filesystem.Path.CurrentOS
 
 import Photo
 import Db
+import Config
 
 
 find_date tags =
-  let datetime = 
+  let datetime =
         case Map.lookup dateTimeOriginal tags of
           Nothing -> Map.lookup dateTime tags
           Just datetime -> Just datetime
@@ -52,9 +54,23 @@ calculate_path (Photo id_ name date hash) =
       right = decodeString newname
         where
           newname = case id_ of
-                      Just id_ -> printf "%d_%s" id_ filename
+                      Just id_ ->
+                        if isPrefixOf (printf "%d_" id_) filename then
+                          filename
+                        else
+                          printf "%d_%s" id_ filename
                       Nothing -> filename
           filename = filename_of_string name
   in
-    encodeString $ left </> right
-    
+    encodeString $ case year of
+                     -1 -> right
+                     _ -> left </> right
+
+
+move_photo (Config store_path) from to =
+  withCurrentDirectory store_path domove >> return True
+  where
+    domove = do
+      let to_ = decodeString to
+      createDirectoryIfMissing True $ encodeString $ dirname to_
+      renamePath from to

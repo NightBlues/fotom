@@ -11,7 +11,7 @@ import qualified Crypto.Hash.SHA256 as SHA256
 import qualified Data.ByteString as BS
 import qualified Data.Map as Map
 import System.Directory
-import Filesystem.Path.CurrentOS
+import System.FilePath
 
 import Photo
 import Db
@@ -29,8 +29,9 @@ find_date tags =
      \(ExifText datetime) -> readExifDateTime datetime)
 
 
-make_photo conn filename = do
-  filepath <- makeAbsolute filename
+make_photo (Config store_path) conn filename = do
+  abspath <- makeAbsolute filename
+  let filepath = makeRelative store_path abspath
   exif <- parseFileExif filename
   hash <- fmap SHA256.hash $ (BS.readFile filename)
   hash_unique <- check_hash conn hash
@@ -49,28 +50,29 @@ calculate_path (Photo id_ name date hash) =
         case date of
           Just (UTCTime {utctDay=day, utctDayTime=_}) -> toGregorian day
           Nothing -> (-1, -1, -1)
-      left = decodeString $ printf "%d" year
-      filename_of_string n = encodeString $ filename $ decodeString n
-      right = decodeString newname
-        where
-          newname = case id_ of
-                      Just id_ ->
-                        if isPrefixOf (printf "%d_" id_) filename then
-                          filename
-                        else
-                          printf "%d_%s" id_ filename
-                      Nothing -> filename
-          filename = filename_of_string name
+      left = printf "%d" year
+      filename = takeFileName name
+      right = case id_ of
+                Just id_ ->
+                  if isPrefixOf (printf "%d_" id_) filename then
+                    filename
+                  else
+                    printf "%d_%s" id_ filename
+                Nothing -> filename
   in
-    encodeString $ case year of
-                     -1 -> right
-                     _ -> left </> right
+    case year of
+      -1 -> right
+      _ -> left </> right
 
 
-move_photo (Config store_path) from to =
-  withCurrentDirectory store_path domove >> return True
+move_photo (Config store_path) from to rmflag =
+  withCurrentDirectory store_path domove
   where
     domove = do
-      let to_ = decodeString to
-      createDirectoryIfMissing True $ encodeString $ dirname to_
-      renamePath from to
+      createDirectoryIfMissing True $ takeDirectory to
+      if from /= to then do
+        move_func from to
+        return True
+      else
+        return False
+    move_func = if rmflag then renamePath else copyFile

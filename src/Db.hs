@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Db where
 import Database.SQLite.Simple
-import Filesystem.Path.CurrentOS
+import System.FilePath
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.UTF8 as BSU
 import Photo
@@ -10,7 +10,7 @@ import Config
 
 dbpath = "db.sqlite"
 
-get_db_path store_path = encodeString $ decodeString store_path </> decodeString dbpath
+get_db_path store_path = store_path </> dbpath
 
 open_conn (Config store_path) = open $ get_db_path store_path
 

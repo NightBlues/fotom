@@ -16,7 +16,7 @@ dependencies:
 - directory
 - aeson
 - time
-- system-filepath
+- filepath
 executables:
   fotom:
     main: Main.hs
